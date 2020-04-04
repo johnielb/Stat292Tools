@@ -188,3 +188,31 @@ cuml_poi(16, 12, left.tail=T, exclusive=F)
 cuml_poi(16, 12, left.tail=T, exclusive=T)
 cuml_poi(16, 12, left.tail=F, exclusive=F)
 cuml_poi(16, 12, left.tail=F, exclusive=T)
+
+chisq_gof_test <- function(n, f, sig.level=0.05) {
+  lambda_hat <- sum(n*f)/sum(f)
+  pois <- dpois(n, lambda_hat)
+  f_hat_orig <- sum(f) * pois
+  f_hat <- f_hat_orig[f_hat_orig>5]
+  f_new <- f[f_hat_orig>5]
+  if (!identical(f_hat_orig, f_hat)) {
+    new_last_f_hat <- sum(f) * sum(pois[f_hat_orig<=5])
+    new_last_f <- sum(f[f_hat_orig<=5])
+    if (new_last_f_hat < 5) {
+      new_last_f_hat <- new_last_f_hat + sum(f) * pois[length(f_hat)]
+      new_last_f <- new_last_f + f[length(f_hat)]
+    }
+    f_hat[length(f_hat)] <- new_last_f_hat
+    f_new[length(f_hat)] <- new_last_f
+  }
+  mse <- (f_new-f_hat)^2/f_hat
+  df <- length(f_hat)-1-1
+  p_val <- pchisq(sum(mse), df=df, lower.tail=F)
+  result <- "\n> Can't reject null hypothesis, insufficient evidence to suggest distribution is not Poisson.\n"
+  if (p_val < sig.level) {
+    result <- "\n> Can reject null hypothesis, sufficient evidence to suggest distribution is not Poisson.\n"
+  }
+  cat(paste0("p-value of test: ", p_val, result))
+}
+
+chisq_gof_test(0:10, c(114,25,15,10,6,5,2,1,1,0,1))
