@@ -1,4 +1,4 @@
-summ_bin <- function(x, size, prob) {
+summ_bin <- function(size, prob) {
   cat(paste0("\nX ~ Bin(", size, ", ", prob, ")\n> E(X) = ", size*prob,
              "\n> Var(X) = ", size*prob*(1-prob), "\n> sd(x) = ", sqrt(size*prob*(1-prob)), "\n"))
 }
@@ -12,20 +12,16 @@ cuml_bin <- function(x, size, prob, left.tail=TRUE, exclusive=FALSE) {
   str <- paste0("\nX ~ Bin(", size, ", ", prob, ")\n> P(X ")
   if (left.tail) {
     if (exclusive) {
-      str <- paste0(str, "< ", x, ") = ",
-                    pbinom(x-1, size, prob))
-    } else {
-      str <- paste0(str, "<= ", x, ") = ",
-                    pbinom(x, size, prob))
+      x <- x-1
     }
+    str <- paste0(str, "<= ", x, ") = ",
+                  pbinom(x, size, prob))
   } else {
-    if (exclusive) {
-      str <- paste0(str, "> ", x, ") = ", 
-                    pbinom(x, size, prob, lower=F))
-    } else {
-      str <- paste0(str, ">= ", x, ") = ", 
-                    pbinom(x-1, size, prob, lower=F))
+    if (!exclusive) {
+      x <- x-1
     }
+    str <- paste0(str, "> ", x, ") = ", 
+                  pbinom(x, size, prob, lower=F))
   }
   cat(paste0(str, "\n"))
 }
@@ -93,6 +89,14 @@ cuml_bin(4, 12, 0.2, left.tail=T, exclusive=T)
 cuml_bin(4, 12, 0.2, left.tail=F, exclusive=F)
 cuml_bin(4, 12, 0.2, left.tail=F, exclusive=T)
 
+# Assignment 1, question 2b
+summ_bin(40, 0.2)
+# Assignment 1, question 2c
+mass_bin(20, 40, 0.2)
+# Assignment 1, question 2d
+cuml_bin(10, 40, 0.2, exclusive = T)
+range_bin(-Inf, 10, 40, 0.2, exclusive.upper = T)
+
 z_from_confidence_level <- function(confidence.level) {
   significance_level <- 1-confidence.level
   qnorm(1-significance_level/2)
@@ -121,15 +125,20 @@ proportion_ci <- function(y, n, z=NA, confidence.level=NA, ac=FALSE) {
   cat(paste0(str, "(", interval[1], ", ", interval[2], ")\n"))
 }
 
+# Slide 47, discrete distributions
 proportion_ci(22, 300, confidence.level = 0.95)
 proportion_ci(22, 300, z = 1.645)
 proportion_ci(22, 300, confidence.level = 0.95, ac=T)
+# Assignment 1, question 3b
+proportion_ci(32, 172, z=1.96)
+proportion_ci(32, 172, z=1.96, ac=T)
 
 min_sample_size <- function(margin_of_error, confidence.level, p=0.5) {
   z <- z_from_confidence_level(confidence.level)
   cat(paste0("> Sample size should be greater or equal to ", (z/margin_of_error)^2*p*(1-p)),"\n")
 }
 
+# selection from slide 53, discrete distributions
 min_sample_size(0.1, confidence.level=0.95)
 min_sample_size(0.09, confidence.level=0.99)
 min_sample_size(0.03, confidence.level=0.95, p=0.65)
@@ -138,17 +147,20 @@ proportion_z_test <- function(y1, n1, y2, n2, sig.level=0.05) {
   p1 <- y1/n1
   p2 <- y2/n2
   p_hat <- (y1+y2)/(n1+n2)
-  p_hat_variance <- p_hat*(1-p_hat)*(1/n1+1/n2)
-  z <- (p1-p2)/p_hat_variance
-  p_val <- 2 * (1 - pnorm(abs(z)))
+  p_hat_variance <- sqrt(p_hat*(1-p_hat)*(1/n1+1/n2))
+  z <- abs((p1-p2)/p_hat_variance)
+  p_val <- 2 * (1 - pnorm(z))
   result <- "\n> Can't reject null hypothesis, insufficient evidence to suggest the two proportions are different.\n"
   if (p_val < sig.level) {
     result <- "\n> Can reject null hypothesis, sufficient evidence to suggest the two proportions are different.\n"
   }
-  cat(paste0("p-value of test: ", p_val, result))
+  cat(paste0("Variance of common proportion: ", p_hat_variance, "\nTest statistic: ", z, "\np-value of test: ", p_val, result))
 }
 
+# Slide 58, discrete distributions
 proportion_z_test(3113, 24117, 8391, 35829)
+# Assignment 1, question 3c
+proportion_z_test(32, 172, 32, 163)
 
 summ_poi <- function(x, lambda) {
   cat(paste0("\nX ~ Poi(", lambda, ")\n> E(X) = ", lambda,
@@ -189,21 +201,21 @@ cuml_poi(16, 12, left.tail=T, exclusive=T)
 cuml_poi(16, 12, left.tail=F, exclusive=F)
 cuml_poi(16, 12, left.tail=F, exclusive=T)
 
-chisq_gof_test <- function(n, f, sig.level=0.05) {
+chisq_gof_pois_test <- function(n, f, sig.level=0.05) {
   lambda_hat <- sum(n*f)/sum(f)
   pois <- dpois(n, lambda_hat)
   f_hat_orig <- sum(f) * pois
   f_hat <- f_hat_orig[f_hat_orig>5]
   f_new <- f[f_hat_orig>5]
-  if (!identical(f_hat_orig, f_hat)) {
-    new_last_f_hat <- sum(f) * sum(pois[f_hat_orig<=5])
+  if (!identical(f_hat_orig, f_hat)) { # regroup all groups less than 5, assuming all on right tail
+    new_last_f_hat <- sum(f) * (1-sum(pois[f_hat_orig>5]))
     new_last_f <- sum(f[f_hat_orig<=5])
     if (new_last_f_hat < 5) {
       new_last_f_hat <- new_last_f_hat + sum(f) * pois[length(f_hat)]
       new_last_f <- new_last_f + f[length(f_hat)]
     }
-    f_hat[length(f_hat)] <- new_last_f_hat
-    f_new[length(f_hat)] <- new_last_f
+    f_hat[length(f_hat)+1] <- new_last_f_hat
+    f_new[length(f_new)+1] <- new_last_f
   }
   mse <- (f_new-f_hat)^2/f_hat
   df <- length(f_hat)-1-1
@@ -212,7 +224,10 @@ chisq_gof_test <- function(n, f, sig.level=0.05) {
   if (p_val < sig.level) {
     result <- "\n> Can reject null hypothesis, sufficient evidence to suggest distribution is not Poisson.\n"
   }
-  cat(paste0("p-value of test: ", p_val, result))
+  cat(paste0("Test statistic: ", sum(mse), " with ", df, " degrees of freedom.\np-value of test: ", p_val, result))
 }
 
-chisq_gof_test(0:10, c(114,25,15,10,6,5,2,1,1,0,1))
+# Slide 71, discrete distributions
+chisq_gof_pois_test(0:10, c(114,25,15,10,6,5,2,1,1,0,1))
+# Assignment 2, 1c
+chisq_gof_pois_test(0:5, c(19,3,1,4,7,7))
