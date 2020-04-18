@@ -204,17 +204,20 @@ cuml_poi(16, 12, left.tail=F, exclusive=T)
 chisq_gof_pois_test <- function(n, f, sig.level=0.05) {
   lambda_hat <- sum(n*f)/sum(f)
   pois <- dpois(n, lambda_hat)
+  pois[length(pois)] <- 1-sum(pois[1:length(pois)-1])
   f_hat_orig <- sum(f) * pois
+  # carry over only those with an expected f > 5
   f_hat <- f_hat_orig[f_hat_orig>5]
   f_new <- f[f_hat_orig>5]
   if (!identical(f_hat_orig, f_hat)) { # regroup all groups less than 5, assuming all on right tail
-    new_last_f_hat <- sum(f) * (1-sum(pois[f_hat_orig>5]))
-    new_last_f <- sum(f[f_hat_orig<=5])
-    if (new_last_f_hat < 5) {
+    new_last_f_hat <- sum(f) * (1-sum(pois[f_hat_orig>5])) # total times Poisson probability not carried over
+    new_last_f <- sum(f[f_hat_orig<=5]) # all observations not carried over
+    if (new_last_f_hat < 5) { # only need to do this once as f_hat[length(f_hat)] is guaranteed to be >5
       new_last_f_hat <- new_last_f_hat + sum(f) * pois[length(f_hat)]
       new_last_f <- new_last_f + f[length(f_hat)]
     }
-    f_hat[length(f_hat)+1] <- new_last_f_hat
+    # add these to the end
+    f_hat[length(f_hat)+1] <- new_last_f_hat 
     f_new[length(f_new)+1] <- new_last_f
   }
   mse <- (f_new-f_hat)^2/f_hat
