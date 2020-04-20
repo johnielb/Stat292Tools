@@ -111,7 +111,7 @@ proportion_ci <- function(y, n, z=NA, confidence.level=NA, ac=FALSE) {
     z <- z_from_confidence_level(confidence.level)
   }
   if (is.na(confidence.level)) { # if no confidence level specified, calculate from z-value
-    confidence.level <- pnorm(z)
+    confidence.level <- 2*pnorm(z)-1
   }
   str <- paste0(confidence.level*100, "% Clopper-Pearson confidence interval: ")
   if (ac) {
