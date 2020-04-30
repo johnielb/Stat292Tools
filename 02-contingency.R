@@ -123,7 +123,7 @@ graduates <- list(matrix(c(18,12,12,8), byrow=T, nrow=2),
     colnames(m) <- c("Low income", "High income")
     m
   })
-names(death_penalty) <- c("Arts", "Science")
+names(graduates) <- c("Arts", "Science")
 
 marginal_tbl <- Reduce('+', graduates)
 odds_ratio(marginal_tbl[1,1], marginal_tbl[1,2], marginal_tbl[2,1], marginal_tbl[2,2], confidence.level = 0.95)
