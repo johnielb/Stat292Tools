@@ -82,7 +82,7 @@ range_bin(3, 11, 20, 0.25, norm.approx=T, exclusive.lower=F, exclusive.upper=F)
 range_bin(3, 11, 20, 0.25, norm.approx=F, exclusive.lower=F, exclusive.upper=T)
 range_bin(3, 11, 20, 0.25, norm.approx=F, exclusive.lower=T, exclusive.upper=T)
 
-summ_bin(4, 12, 0.2)
+summ_bin(4, 12)
 mass_bin(4, 12, 0.2)
 cuml_bin(4, 12, 0.2, left.tail=T, exclusive=F)
 cuml_bin(4, 12, 0.2, left.tail=T, exclusive=T)
@@ -129,6 +129,7 @@ proportion_ci <- function(y, n, z=NA, confidence.level=NA, ac=FALSE) {
 proportion_ci(22, 300, confidence.level = 0.95)
 proportion_ci(22, 300, z = 1.645)
 proportion_ci(22, 300, confidence.level = 0.95, ac=T)
+
 # Assignment 1, question 3b
 proportion_ci(32, 172, z=1.96)
 proportion_ci(32, 172, z=1.96, ac=T)
@@ -201,7 +202,8 @@ cuml_poi(16, 12, left.tail=T, exclusive=T)
 cuml_poi(16, 12, left.tail=F, exclusive=F)
 cuml_poi(16, 12, left.tail=F, exclusive=T)
 
-chisq_gof_pois_test <- function(n, f, sig.level=0.05) {
+chisq_gof_pois_test <- function(f, sig.level=0.05) {
+  n <- seq_along(f)-1
   lambda_hat <- sum(n*f)/sum(f)
   pois <- dpois(n, lambda_hat)
   pois[length(pois)] <- 1-sum(pois[1:length(pois)-1])
@@ -210,15 +212,20 @@ chisq_gof_pois_test <- function(n, f, sig.level=0.05) {
   f_hat <- f_hat_orig[f_hat_orig>5]
   f_new <- f[f_hat_orig>5]
   if (!identical(f_hat_orig, f_hat)) { # regroup all groups less than 5, assuming all on right tail
-    new_last_f_hat <- sum(f) * (1-sum(pois[f_hat_orig>5])) # total times Poisson probability not carried over
+    new_last_f_hat <- sum(f) * (1-sum(pois[f_hat_orig>5])) # total * Poisson probability not carried over
     new_last_f <- sum(f[f_hat_orig<=5]) # all observations not carried over
     if (new_last_f_hat < 5) { # only need to do this once as f_hat[length(f_hat)] is guaranteed to be >5
       new_last_f_hat <- new_last_f_hat + sum(f) * pois[length(f_hat)]
       new_last_f <- new_last_f + f[length(f_hat)]
+      # add these at the end
+      f_hat[length(f_hat)] <- new_last_f_hat 
+      f_new[length(f_new)] <- new_last_f
+    } else {
+      # append these
+      f_hat[length(f_hat)+1] <- new_last_f_hat 
+      f_new[length(f_new)+1] <- new_last_f
     }
-    # add these to the end
-    f_hat[length(f_hat)+1] <- new_last_f_hat 
-    f_new[length(f_new)+1] <- new_last_f
+    
   }
   mse <- (f_new-f_hat)^2/f_hat
   df <- length(f_hat)-1-1
@@ -231,6 +238,6 @@ chisq_gof_pois_test <- function(n, f, sig.level=0.05) {
 }
 
 # Slide 71, discrete distributions
-chisq_gof_pois_test(0:10, c(114,25,15,10,6,5,2,1,1,0,1))
+chisq_gof_pois_test(c(114,25,15,10,6,5,2,1,1,0,1))
 # Assignment 2, 1c
-chisq_gof_pois_test(0:5, c(19,3,1,4,7,7))
+chisq_gof_pois_test(c(19,3,1,4,7,7))
