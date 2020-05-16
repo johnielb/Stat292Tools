@@ -1,4 +1,4 @@
-library(dplyr)
+library(tidyr)
 
 z_from_confidence_level <- function(confidence.level) {
   significance_level <- 1-confidence.level
@@ -61,6 +61,12 @@ colnames(cancer) <- c("Survived 10 years+", "Survived less than 10 years")
 odds_ratio(cancer[1,1], cancer[1,2], cancer[2,1], cancer[2,2], confidence.level = 0.95)
 expected_fs(cancer, check=T)
 chisq_independence_test(cancer)
+
+pregnancies <- tibble('alcohol' = c(0,0.055,0.33, 2), '0' = c(105,58,84,47), '8' = c(7,5,37,16), '16' = c(11,13,42,17)) 
+
+pregnancies_long <- pregnancies %>%
+  pivot_longer(-alcohol, names_to = 'nicotine', values_to = 'frequency')
+pregnancies_long$nicotine <- as.numeric(pregnancies$nicotine)
 
 fishers_exact_test <- function(tbl, sig.level=0.05, lower.tail=F, two.sided=F) {
   row_marginals <- apply(tbl, 1, sum)
@@ -129,3 +135,12 @@ marginal_tbl <- Reduce('+', graduates)
 odds_ratio(marginal_tbl[1,1], marginal_tbl[1,2], marginal_tbl[2,1], marginal_tbl[2,2], confidence.level = 0.95)
 
 conditional_associations(graduates)
+
+smokers <- list(matrix(c(647,2,622,27), byrow=T, nrow=2),
+                matrix(c(41,19,28,32), byrow=T, nrow=2)) %>% 
+  lapply(function(m) {
+    rownames(m) <- c("Lung cancer", "No lung cancer")
+    colnames(m) <- c("Smoker", "Non smoker")
+    m
+  })
+names(smokers) <- c("Male", "Female")
